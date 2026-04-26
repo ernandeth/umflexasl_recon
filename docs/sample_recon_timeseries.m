@@ -56,7 +56,14 @@ if flags.doRecon>0
             'niter', 25, 'Reg',100 , 'coilwise',1 );
 
         writenii('coils.nii', abs(imc));
+ 
+        fprintf('\nsmoothing COIL images   ... \n')
+        for n=1:size(imc,4)
+            imc(:,:,:,n) = smooth3(imc(:,:,:,n),'gaussian');
+        end
 
+        fprintf('\nMaking Sensitivity maps from coil images   ... \n')
+ 
         % calculate the maps from the coil images
         smap_mirt = mri_sensemap_denoise(imc, 'niter', 30, ...
             'bodycoil_default','ssos-angle-pca1');
@@ -76,10 +83,6 @@ if flags.doRecon>0
     Sres = size(smap_mirt,1);
     ncoils = size(smap_mirt,4);
 
-    fprintf('\nsmoothing SENSE maps  ... \n')
-    for n=1:size(smap_mirt,4)
-        smap_mirt(:,:,:,n) = smooth3(smap_mirt(:,:,:,n),'gaussian');
-    end
     % display the sense maps
     figure
     for n=1:ncoils
