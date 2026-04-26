@@ -178,7 +178,7 @@ for i = 1:length(d)
 
         % These the time  course components we want to keep!
         X = ones(size(ims,4), 2);
-        X(1:2:end) = -1;
+        X(1:2:end,2) = -1;
 
         [tmp_r junkcomps]= aslrec.compcor23(real(ims), flags.doCompCorN, X);
         [tmp_i junkcomps]= aslrec.compcor23(imag(ims), flags.doCompCorN, X);
