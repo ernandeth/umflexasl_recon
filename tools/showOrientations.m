@@ -11,10 +11,10 @@ function s= showOrientation(filename, echoes)
 kv=load(filename);
 
 if nargin<2
-	echoes=1:size(kv,1)
+	echoes=1:size(kv,1);
 end
 
-unit = [1 0 0]
+unit = [1 0 1]
 s=zeros(length(echoes), 3);
 
 for n=echoes
@@ -26,4 +26,5 @@ end
 plot3(s(:,1), s(:,2), s(:,3), 'o');
 axis square
 drawnow
+whos s
 end

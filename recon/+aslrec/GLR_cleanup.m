@@ -24,10 +24,16 @@ comps = v(:,1:Ncomps);
 plot(real(comps));
 pr = 0;
 
+% assume each voxel's timee course is made up of basis functions identified
+% by the largest components from the SVD
+% output is the fit of each voxel's timcourse 
+% to the largest components of the casorati matrix
+
 for p = 1 :size(casorati,1)
 
     tseries = casorati(p,:)';
     out(p,:)= sum (comps*pinv(comps)*real(tseries),2);
+
     if mod(pr,1000)==0
         fprintf('\rProgress ... %0.2f', 100*pr/size(casorati,1) )
     end

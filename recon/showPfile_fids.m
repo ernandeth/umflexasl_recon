@@ -1,4 +1,4 @@
-function showPfile_fids
+function etl1 =showPfile_fids
 
 
 [kdata,klocs,N,fov] = aslrec.read_data([],0);

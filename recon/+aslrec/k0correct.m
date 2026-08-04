@@ -24,7 +24,7 @@ fprintf('\nExecuting k0 correction %d \n', options);
 klocs = squeeze(klocs(:,1,:));
 
 R = sqrt(sum(klocs.^2, 2));
-k0inds = find(R<1e-5);
+k0inds = find(R<1e-4);
 
 if length(k0inds) < 1
     length(k0inds)

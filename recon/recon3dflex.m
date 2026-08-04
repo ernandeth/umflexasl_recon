@@ -59,6 +59,7 @@ function x = recon3dflex(varargin)
 %               out(r) = in(r) + amplitude*in(r)*ramp(r)
 %   - nonavs (0/1) : remove navigator data from k=0 ?
 %   - Reg (0) : Thikonov regularization weight. Default is 0 
+%   - ksubtract (0/1) :   ASL pairwise subtraction in k-space - default is 0
 
     % check that mirt is set up
     aslrec.check4mirt();
@@ -80,6 +81,7 @@ function x = recon3dflex(varargin)
     defaults.hp_filter = 0;
     defaults.lp_filter = 0;
     defaults.Reg = 0;
+    defaults.ksubtract = 0;
 
     % parse input parameters
     args = vararg_pair(defaults,varargin);
@@ -98,9 +100,9 @@ function x = recon3dflex(varargin)
 
     N = ceil(N*args.resfac); % upsample N (image matrix size)
     
-    % cut off first 50 pts of acquisition (sometimes gets corrupted)
-    kdata(1:50,:,:,:) = [];
-    klocs(1:50,:,:) = [];
+    % cut off first 20 pts of acquisition (sometimes gets corrupted)
+    kdata(1:20,:,:,:) = [];
+    klocs(1:20,:,:) = [];
     
     % get sizes
     ndat = size(kdata,1);   % number of data per view.
@@ -288,6 +290,27 @@ function x = recon3dflex(varargin)
         args.frames = 1:nframes;
     end
 
+    % for ASL - do pairwise subtractions in k-space before reconstruction 
+    if args.ksubtract
+
+        fprintf('\nPerforming pairwise subtractions of time series frames in k-space before recon...');
+        
+        kdata = kdata(:,:,1:2:end,:) - kdata(:,:,2:2:end,:);
+        
+        tmp=[];
+        for n=1:2:nframes
+            tmp = [tmp    nviews*n + [1:nviews]];
+        end
+        klocs = klocs(:,tmp,:);
+
+        % re-calculate data sizes
+        ndat = size(kdata,1);   % number of data per view.
+        nviews = size(kdata,2);  % number of view per frame
+        nframes = size(kdata,3); % number of frames
+        ncoils = size(kdata,4); % number of coils
+        framesize = ndat*nviews;  % number of data per frame.
+        args.frames = 1:nframes;
+    end
 
 
     % set nufft arguments
@@ -310,9 +333,17 @@ function x = recon3dflex(varargin)
         Areg = [];
         Aregtv = [];
         L = 0;
+
+        % calculate the total energy in the middle frame
+        % The regularization parameter will be calculated relative 
+        % to its total energy (norm)
+        b = reshape(kdata(:,:,ceil(nframes/2),:),[],ncoils);
+        Nrg = norm(b(:)) / prod(N);
+        fprintf("Energy (norm) per voxel of middle frame : %f\n", Nrg);
+
         if args.Reg
             Aold = A;
-            L = args.Reg;
+            L = args.Reg * Nrg;
             % define A'A + L*eye operator for Tikhonov Regularization
             Areg = @(x) A'*A*x + L*x;
 
@@ -342,7 +373,7 @@ function x = recon3dflex(varargin)
             fprintf("frame %d/%d: initializing solution x0 = A'*(w.*b)\n", i, length(args.frames))
             x0 = reshape( A' * (w.*b), N );
             x0 = ir_wls_init_scale(A, b, x0);
-            
+
             if args.niter==0  % just the NUFFT - no iterations!
                 x(:,:,:,i) = reshape(x0,N);
             else
@@ -365,7 +396,14 @@ function x = recon3dflex(varargin)
 
     else  % MRF case
         %for i = 1:length(args.frames)
-               
+         
+        % calculate the total energy in the middle frame
+        % The regularization parameter will be calculated relative 
+        % to its total energy (norm)
+        b = reshape(kdata(:,:,ceil(nframes/2),:),[],ncoils);
+        Nrg = norm(b(:)) / prod(N);
+        fprintf("Energy (norm) per voxel of middle frame : %f\n", Nrg);
+      
         if isempty(gcp('nocreate')), parpool(4), end
         parfor i = 1:length(args.frames)
             % Usually just need to do this once, but in MRF mode the system matrix
@@ -400,7 +438,7 @@ function x = recon3dflex(varargin)
                 L = 0;
                 if args.Reg
                     Aold = A;
-                    L = args.Reg;
+                    L = args.Reg*Nrg;
                     % define A'A + L*eye operator for Tikhonov Regularization
                     Areg = @(x) A'*A*x + L*x;
 
