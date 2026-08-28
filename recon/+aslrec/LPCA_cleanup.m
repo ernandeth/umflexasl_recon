@@ -1,5 +1,5 @@
-function out = LPCA_cleanup(ims, nbrs, Ncomps, X)
-%function out = LPCA_cleanup(ims, nbrs, Ncomps [,X] )
+function [out, Ncc] = LPCA_cleanup(ims, nbrs, Ncomps, X)
+%function [out, Ncc] = LPCA_cleanup(ims, nbrs, Ncomps [,X] )
 % 
 % Local PCA clean up of a time series with heavy noise
 %
@@ -79,7 +79,7 @@ parfor r = 1 : NpixTotal
 
             coefs = corr(comps,X);
             coefs = max(abs(coefs),[],2);
-            badcomps = find(abs(coefs) > 0.2);
+            badcomps = find(abs(coefs) > 0.1);
             comps(:,badcomps) = [];
 
             % diagnostic: track the number of components left
@@ -94,7 +94,7 @@ parfor r = 1 : NpixTotal
             % end
         end
 
-        % zero mean all the junk regressors
+        % IMPORTANT: zero mean all the junk regressors
         comps = comps - repmat(mean(comps,1), size(comps,1),1);
 
         % estimate and remove components from the signal
@@ -112,8 +112,8 @@ parfor r = 1 : NpixTotal
 end
 out = reshape(out',dims);
 Ncc = reshape(Ncc,dims(1:3));
-lbview(Ncc); title('N. Components'); colorbar
-pause(1)
+%lbview(Ncc); title('N. Components'); colorbar
+%pause(1)
 
 % the edges may be wrong, so remove them
 out(1:nbrs,:,:,:) =0;
